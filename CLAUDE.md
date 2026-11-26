@@ -43,6 +43,9 @@ None of them offer:
   language, threshold), plus a public **Telegram channel** with the daily bulletin.
   Email needs double opt-in, an unsubscribe link and minimal stored data (GDPR).
   Every message says it is not an official warning and links to AEMET / Gobierno de Canarias.
+- Izaña station (AEMET, ~2,370 m), via AERONET: no EEA station measures above the marine
+  boundary layer, so dust passing at altitude without reaching the surface is invisible
+  to the rest of the network. Found during the spike (see `notes/diario.md`).
 
 ### Phase 3
 - Ocean chlorophyll (Copernicus Marine ocean colour) before vs after big episodes,

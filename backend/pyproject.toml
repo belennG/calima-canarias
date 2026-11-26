@@ -1,0 +1,21 @@
+[project]
+name = "calima-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Maria Belen Gatti", email = "mbelen.gatti@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "fastapi>=0.165.0",
+    "geoalchemy2>=0.21.0",
+    "psycopg[binary]>=3.3.9",
+    "sqlalchemy>=2.1.9",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"

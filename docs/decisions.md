@@ -164,6 +164,27 @@ lanzarote, "SS GOMERA" -> la_gomera) - all 51 matched.
 (`INSERT ... ON CONFLICT DO UPDATE`), so re-running it after a new EEA download just
 refreshes existing rows and adds any newly-measured station.
 
+## 2026-11-26 — Backfilling `altitude_m` from Open-Elevation
+
+**Decision:** added `calima-ingest backfill-altitude`, which fills `altitude_m` for
+any station that has none, by looking up the terrain elevation at that station's own
+stored coordinates via [Open-Elevation](https://www.open-elevation.com/) - a free,
+no-API-key elevation service. It sends every station missing an altitude in a single
+batched request, and retries on network errors (`urllib`, no new dependency).
+
+**Why not just leave it NULL:** `canarias_pm10_samplingpoints.csv` is the only local
+source with altitude, and 9 of our 56 stations aren't in it (see the stations
+ingestion decision above). For 7 of those 9 we do have real coordinates (from
+`canarias_station_coordinates.csv`), so the terrain elevation there is a genuine,
+checkable value, not a guess - same precision level as the location point itself.
+For the 2 stations whose coordinates are already an approximation (a municipality
+sibling or the town centre - see above), the backfilled altitude inherits that same
+approximation; it is not claimed to be the real sensor height.
+
+**Idempotency:** the command only looks up stations where `altitude_m IS NULL`, so a
+station already filled in - by this command or by a future, more precise source - is
+never overwritten, and re-running after no changes makes no network call at all.
+
 ## Episode definition v1
 
 A day where the daily mean PM10 is above the threshold at N or more stations on the

@@ -144,3 +144,6 @@ SQL, GIS and DevOps through this project, so:
 - When you get something wrong and we catch it, add a line to `docs/ai-workflow.md`
   (what happened, how we caught it).
 - Code, comments and docs in **English**.
+- **End of session:** update `notes/diario.md` with the day's steps, new concepts
+  (glossary), snippets, and errors with their lesson. `notes/` is personal and
+  gitignored.

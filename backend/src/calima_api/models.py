@@ -75,7 +75,8 @@ class Measurement(Base):
 
     station_code: Mapped[str] = mapped_column(ForeignKey("stations.station_code"), primary_key=True)
     start_utc: Mapped[datetime] = mapped_column(primary_key=True)
-    value: Mapped[float]
+    value: Mapped[float | None]
+    validity: Mapped[int]
     dataset: Mapped[Dataset]
 
 

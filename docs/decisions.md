@@ -92,6 +92,31 @@ building yet), `definition_version` (meant to grow every time the detection rule
 an Enum would force a migration on every change) and `source_report` (a new value every
 year, e.g. `episodiosnaturales2021`).
 
+## 2026-11-26 — `measurements.validity`, and why `value` is nullable
+
+**Found while checking real data before running Alembic:** the EEA parquet files carry
+their own `Validity` code per row (1 = valid, -1 seen so far = not valid). When
+`Validity = -1`, `Value` is not a real reading — it is the sentinel `-999`. Checked 15
+files (853k rows): ~5.3% of rows are this sentinel. Loading `-999` as a real µg/m³ value
+would silently poison any mean or episode threshold.
+
+**Decision:** add `measurements.validity` (the raw EEA code, kept as-is — same reasoning
+as `dataset`: never lose the source's own provenance), and make `value` nullable. The
+ingestion code converts the `-999` sentinel to `NULL` before inserting, instead of storing
+it as a number. `validity` is NOT an Enum: the EEA's documented code list has more values
+than we have evidence for in our own data so far (we have only seen `1` and `-1`); storing
+the raw int keeps us from blocking ingestion on a code we have not catalogued yet.
+
+**Out of scope for the schema:** detecting a *saturated* sensor (a valid-but-implausible
+reading, e.g. pegged at the sensor's ceiling for hours) is not something the `Validity`
+code captures — EEA considers it a valid reading. That is application logic (part of
+episode detection), not a column we can add here.
+
+**Also checked, no change:** CAMS's own GRIB missing-value sentinel
+(`3.4028234663852886e+38`, the float32 max) is an ingestion-time check, not a schema
+concern — `cams_forecasts` has no per-row validity code to preserve, there is nothing to
+store besides the already-clean value.
+
 ## Episode definition v1
 
 A day where the daily mean PM10 is above the threshold at N or more stations on the

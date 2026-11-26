@@ -22,6 +22,39 @@ class Island(str, Enum):
     FUERTEVENTURA = "fuerteventura"
 
 
+class StationType(str, Enum):
+    """EEA's AirQualityStationType. 4 of the 60 Canarias sampling points have none recorded."""
+
+    INDUSTRIAL = "industrial"
+    TRAFFIC = "traffic"
+    BACKGROUND = "background"
+
+
+class StationArea(str, Enum):
+    """EEA's AirQualityStationArea. Every Canarias sampling point has one."""
+
+    URBAN = "urban"
+    SUBURBAN = "suburban"
+    RURAL_REGIONAL = "rural-regional"
+    RURAL_NEARCITY = "rural-nearcity"
+
+
+class Dataset(str, Enum):
+    VERIFIED = "verified"
+    UP_TO_DATE = "up_to_date"
+
+
+class DataStatus(str, Enum):
+    PROVISIONAL = "provisional"
+    CONFIRMED = "confirmed"
+
+
+class DustType(str, Enum):
+    AFRICAN = "african"
+    BIOMASS_BURNING = "biomass_burning"
+    EUROPEAN_SULFATE = "european_sulfate"
+
+
 class Station(Base):
     __tablename__ = "stations"
 
@@ -30,7 +63,8 @@ class Station(Base):
     name: Mapped[str]
     island: Mapped[Island]
     altitude_m: Mapped[float]
-    station_type: Mapped[str]
+    station_type: Mapped[StationType | None]
+    station_area: Mapped[StationArea]
     location: Mapped[WKBElement] = mapped_column(Geometry(geometry_type="POINT", srid=4326))
 
 
@@ -42,7 +76,7 @@ class Measurement(Base):
     station_code: Mapped[str] = mapped_column(ForeignKey("stations.station_code"), primary_key=True)
     start_utc: Mapped[datetime] = mapped_column(primary_key=True)
     value: Mapped[float]
-    dataset: Mapped[str]  # "verified" | "up_to_date"
+    dataset: Mapped[Dataset]
 
 
 class Episode(Base):
@@ -56,7 +90,7 @@ class Episode(Base):
     peak_value: Mapped[float]
     peak_station_code: Mapped[str] = mapped_column(ForeignKey("stations.station_code"))
     definition_version: Mapped[str]
-    data_status: Mapped[str]  # "provisional" | "confirmed"
+    data_status: Mapped[DataStatus]
 
 
 class OfficialEpisode(Base):
@@ -65,8 +99,8 @@ class OfficialEpisode(Base):
     __tablename__ = "official_episodes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    region: Mapped[str]
-    dust_type: Mapped[str]  # "african" | "biomass_burning" | "european_sulfate"
+    region: Mapped[str]  # always "CANARIAS" for the MVP, see docs/decisions.md
+    dust_type: Mapped[DustType]
     start_date: Mapped[date]
     end_date: Mapped[date]
     source_report: Mapped[str]

@@ -68,6 +68,30 @@ relevant Canarias ranges (starting with February 2020). A general PDF-table pars
 all available years (2013–2025) is a phase-2 task if we end up needing full automated
 validation.
 
+## 2026-11-26 — Enums for closed-set columns, and a new `stations.station_area`
+
+**Decision:** map `island`, `station_type`, `dataset`, `data_status` and `dust_type` to
+Python `Enum` classes (SQLAlchemy creates a native Postgres `ENUM` type for each), instead
+of plain strings. The database itself then rejects any value outside the closed set,
+instead of relying on application code to behave.
+
+Checked the real values first, in `data/raw/canarias_pm10_samplingpoints.csv` (the EEA
+sampling-point metadata for Canarias, 60 rows): `AirQualityStationType` is one of
+`industrial` / `traffic` / `background`, but 4 of the 60 rows have none recorded — so
+`stations.station_type` stays **nullable**.
+
+**Added `stations.station_area`** (EEA's `AirQualityStationArea`: `urban` / `suburban` /
+`rural-regional` / `rural-nearcity`), not originally planned. Every one of the 60 rows has
+it (no nulls), and it matters for the project's own analysis: a `rural-regional` station is
+more representative of a large-scale Saharan dust event than an `urban`/`traffic` one,
+which picks up more local pollution. `station_type` alone does not capture that.
+
+**Left as plain strings, deliberately:** `region` (always `"CANARIAS"` for the MVP — an
+Enum for a column we only ever write one value to would be designing for scope we are not
+building yet), `definition_version` (meant to grow every time the detection rule changes;
+an Enum would force a migration on every change) and `source_report` (a new value every
+year, e.g. `episodiosnaturales2021`).
+
 ## Episode definition v1
 
 A day where the daily mean PM10 is above the threshold at N or more stations on the

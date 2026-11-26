@@ -6,11 +6,10 @@ import logging
 
 import typer
 from geoalchemy2 import WKTElement
-from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from calima_api.database import DATABASE_URL
+from calima_api.database import engine
 from calima_api.ingestion.stations import build_stations
 from calima_api.models import Station
 
@@ -28,7 +27,6 @@ def main() -> None:
 def ingest_stations() -> None:
     """Upsert every station that has measurement data (see ingestion/stations.py)."""
     stations = build_stations()
-    engine = create_engine(DATABASE_URL)
 
     with Session(engine) as session:
         for station in stations:

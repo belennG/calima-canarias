@@ -1,0 +1,25 @@
+@if (stations() === null) {
+  <p>Cargando estaciones...</p>
+} @else {
+  <h1>Estaciones ({{ stations()!.features.length }})</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>Isla</th>
+        <th>Altitud (m)</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (feature of stations()!.features; track feature.properties.station_code) {
+        <tr>
+          <td>{{ feature.properties.station_code }}</td>
+          <td>{{ feature.properties.name }}</td>
+          <td>{{ feature.properties.island }}</td>
+          <td>{{ feature.properties.altitude_m ?? '—' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

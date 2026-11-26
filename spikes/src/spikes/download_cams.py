@@ -2,7 +2,7 @@
 
 Run it from the spikes/ folder:
 
-    caffeinate -i uv run python download_cams.py
+    caffeinate -i uv run python src/spikes/download_cams.py
 
 - Requests are sent one after another, never in parallel (ADS rule).
 - Files that already exist are skipped, so the script can be stopped and run again.

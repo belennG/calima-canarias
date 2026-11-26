@@ -117,6 +117,53 @@ episode detection), not a column we can add here.
 concern — `cams_forecasts` has no per-row validity code to preserve, there is nothing to
 store besides the already-clean value.
 
+## 2026-11-26 — Stations ingestion: source of truth, and 3 more nullable columns
+
+**Found while building `calima-ingest stations`:** the 3 local files with station
+data disagree on which stations exist, because each is a snapshot taken at a
+different time and the network itself changes (stations open, close, get replaced):
+
+| Source | Stations | Has |
+|---|---|---|
+| `data/raw/eea_pm10/*.parquet` (the hourly measurements, 2013-now) | **56** | nothing but the code |
+| `canarias_pm10_samplingpoints.csv` (EEA station registry) | 52 | `eea_code`, `altitude_m`, `station_type`, `station_area` |
+| `canarias_station_coordinates.csv` (from the MITECO 2024 shapefile) | 51 | `name`, coordinates, its own `eea_code` |
+
+**Decision:** the measurement archive drives the table - every station code with
+measurement data gets a row, because `measurements` will have a foreign key to
+`stations`. The two metadata files only fill in attributes where they can. This
+means some rows are missing data no local file has:
+
+- **2 stations** (`35002003`, a new station reporting since 2025; `38024001`,
+  2021-2022 only) have no `eea_code`/`station_type`/`station_area`/`altitude_m` at
+  all. **9 stations** are missing just `station_area`/`station_type`/`altitude_m`.
+  Made `eea_code`, `altitude_m` and `station_area` nullable (`station_type` already
+  was) rather than invent a value - same reasoning as `measurements.validity`.
+- **`canarias_pm10_samplingpoints.csv` has a `Longitude`/`Latitude` column that is
+  empty for all 60 of its rows** - this EEA vocabulary export does not actually carry
+  coordinates, despite the column being there. `canarias_station_coordinates.csv` is
+  the only local source that does, and it is missing for 7 of our 56 stations.
+- For those 7, fall back to another station's coordinates in the same municipality
+  (first 5 digits of `station_code`) when one exists in
+  `canarias_station_coordinates.csv` - closer to the truth than a town-centre lookup,
+  and needs no external source. Only `38024` (Los Llanos de Aridane, La Palma) has no
+  station there at all; for that one municipality, used the town's own coordinates
+  (checked the EEA's live `metadata.csv` extract and its ArcGIS station service
+  first - neither has this station either; the service returned a 502 at the time of
+  checking).
+- **`name`** stays non-nullable: falls back to `eea_code`, then to `station_code`,
+  so every row has *something* displayable, clearly a placeholder rather than a
+  fabricated real name.
+
+**`island`:** assigned by nearest-centroid (7 hardcoded island centroids) instead of
+mapping INE municipality codes by hand, to avoid misremembering a code. Verified
+against every station name in `canarias_station_coordinates.csv` (e.g. "ARRECIFE" ->
+lanzarote, "SS GOMERA" -> la_gomera) - all 51 matched.
+
+**Idempotency:** `calima-ingest stations` upserts by `station_code`
+(`INSERT ... ON CONFLICT DO UPDATE`), so re-running it after a new EEA download just
+refreshes existing rows and adds any newly-measured station.
+
 ## Episode definition v1
 
 A day where the daily mean PM10 is above the threshold at N or more stations on the

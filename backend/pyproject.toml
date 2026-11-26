@@ -11,12 +11,23 @@ dependencies = [
     "alembic>=1.20.1",
     "fastapi>=0.165.0",
     "geoalchemy2>=0.21.0",
+    "pandas>=3.1.1",
     "psycopg[binary]>=3.3.9",
+    "pyarrow>=26.0.1",
     "python-dotenv>=1.2.4",
     "sqlalchemy>=2.1.9",
+    "typer>=0.29.3",
     "uvicorn[standard]>=0.54.0",
 ]
+
+[project.scripts]
+calima-ingest = "calima_api.ingestion.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

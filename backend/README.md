@@ -27,9 +27,22 @@ uv run uvicorn calima_api.main:app --reload
 
 ```
 src/calima_api/
-  main.py    FastAPI app and routes
-  models.py  SQLAlchemy models — one class per table in docs/decisions.md
+  main.py            FastAPI app and routes
+  models.py          SQLAlchemy models — one class per table in docs/decisions.md
+  database.py        DATABASE_URL, shared by the app and Alembic
+  ingestion/         CLI commands (Typer) that load data into the database
 ```
 
 Dependencies are managed with `uv` (`pyproject.toml` / `uv.lock`). Database schema
-changes go through Alembic migrations (not added yet).
+changes go through Alembic migrations (`alembic/`):
+
+```bash
+uv run alembic revision --autogenerate -m "describe the change"
+uv run alembic upgrade head
+```
+
+Ingestion commands are idempotent (safe to re-run) and live under `src/calima_api/ingestion/`:
+
+```bash
+uv run calima-ingest stations
+```

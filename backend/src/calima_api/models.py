@@ -59,12 +59,12 @@ class Station(Base):
     __tablename__ = "stations"
 
     station_code: Mapped[str] = mapped_column(primary_key=True)
-    eea_code: Mapped[str]
+    eea_code: Mapped[str | None]
     name: Mapped[str]
     island: Mapped[Island]
-    altitude_m: Mapped[float]
+    altitude_m: Mapped[float | None]
     station_type: Mapped[StationType | None]
-    station_area: Mapped[StationArea]
+    station_area: Mapped[StationArea | None]
     location: Mapped[WKBElement] = mapped_column(Geometry(geometry_type="POINT", srid=4326))
 
 

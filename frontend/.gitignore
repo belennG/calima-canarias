@@ -11,6 +11,10 @@
 npm-debug.log
 yarn-error.log
 
+# Generated from the repo .env at build time (see scripts/generate-environment.js) -
+# never commit it, it carries the real ARCGIS_API_KEY
+src/app/environment.ts
+
 # IDEs and editors
 .idea/
 .project

@@ -44,5 +44,7 @@ uv run alembic upgrade head
 Ingestion commands are idempotent (safe to re-run) and live under `src/calima_api/ingestion/`:
 
 ```bash
-uv run calima-ingest stations
+uv run calima-ingest stations            # upsert the 56 stations and their metadata
+uv run calima-ingest backfill-altitude    # fill altitude_m from Open-Elevation where missing
+uv run calima-ingest measurements         # upsert hourly PM10 from data/raw/eea_pm10/*.parquet
 ```

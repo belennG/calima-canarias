@@ -185,6 +185,37 @@ approximation; it is not claimed to be the real sensor height.
 station already filled in - by this command or by a future, more precise source - is
 never overwritten, and re-running after no changes makes no network call at all.
 
+## 2026-11-27 — Measurements ingestion: dataset tag, batching, and the file-overlap finding
+
+**Decision:** added `calima-ingest measurements`, which loads every row from
+`data/raw/eea_pm10/*.parquet` (121 files, one per station, 5,468,972 rows read) into
+`measurements`, upserting by `(station_code, start_utc)`.
+
+**`dataset` is hardcoded to `Dataset.VERIFIED`:** checked the EEA's own `Verification`
+column across all 121 local files - it is `1` (verified) for every single row. This
+confirms all we have downloaded so far is the verified dataset (matches `CLAUDE.md`'s
+own description). `Dataset.UP_TO_DATE` (the current year's preliminary, unverified data)
+is a separate EEA download not fetched yet; ingesting it is a later task, not part of
+this command.
+
+**Batching, not row-by-row:** at this volume (5.47M rows), inserting one row at a time
+(the pattern used for the 56 `stations` rows) would take far too long. Rows are grouped
+into one multi-row `INSERT ... ON CONFLICT DO UPDATE` per 5,000 rows (`itertools.batched`,
+Python 3.12), committed once per source file - still the same safe upsert, just sent in
+bulk. 5,000 rows x 5 columns stays well under Postgres's bind-parameter limit.
+
+**Found while verifying the real count:** the final row count (5,453,807) is 15,165 rows
+*lower* than the rows actually read (5,468,972). Traced it to station codes that have
+more than one source file - e.g. `SP_38038025_10_46.parquet` and `SP_38038025_10_A.parquet`
+are both station `38038025`, just different EEA "process" codes (the last segment of
+`Samplingpoint`, which we deliberately ignore - see `ingestion/stations.py`). Where two
+files cover the same hour for the same station, the second file's upsert simply
+overwrites the first's - expected, not a bug, and the final per-station count (56,
+matching every known station) confirms no station was lost in the process.
+
+**Idempotency:** ran the command twice against the real database; the row count was
+identical both times (5,453,807).
+
 ## Episode definition v1
 
 A day where the daily mean PM10 is above the threshold at N or more stations on the

@@ -2,7 +2,9 @@
 rows instead of duplicating them.
 """
 
+import itertools
 import logging
+from pathlib import Path
 
 import typer
 from geoalchemy2 import WKTElement
@@ -12,8 +14,13 @@ from sqlalchemy.orm import Session
 
 from calima_api.database import engine
 from calima_api.ingestion.altitude import fetch_elevations
+from calima_api.ingestion.measurements import measurement_files, read_measurement_file
 from calima_api.ingestion.stations import build_stations
-from calima_api.models import Station
+from calima_api.models import Measurement, Station
+
+# Keeps each INSERT's bind-parameter count well under Postgres's limit (5 columns x
+# 5000 rows = 25000 params per statement).
+BATCH_SIZE = 5000
 
 app = typer.Typer()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -71,6 +78,33 @@ def backfill_altitude() -> None:
         session.commit()
 
     logger.info("Backfilled altitude_m for %d stations", len(elevations))
+
+
+@app.command("measurements")
+def ingest_measurements() -> None:
+    """Upsert hourly PM10 measurements from the EEA verified archive (one file per station)."""
+    files = measurement_files()
+    total_rows = 0
+
+    with Session(engine) as session:
+        for parquet_file in files:
+            rows = read_measurement_file(parquet_file)
+            for batch in itertools.batched(rows, BATCH_SIZE):
+                stmt = insert(Measurement).values(list(batch))
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["station_code", "start_utc"],
+                    set_={
+                        "value": stmt.excluded.value,
+                        "validity": stmt.excluded.validity,
+                        "dataset": stmt.excluded.dataset,
+                    },
+                )
+                session.execute(stmt)
+            session.commit()
+            total_rows += len(rows)
+            logger.info("Upserted %s (%d rows)", Path(parquet_file).name, len(rows))
+
+    logger.info("Upserted %d measurement rows total from %d files", total_rows, len(files))
 
 
 if __name__ == "__main__":
